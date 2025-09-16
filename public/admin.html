@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - Innovation Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
+      min-height: 100vh;
+    }
+    .modal-bg {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(6px);
+    }
+    .modal-animate {
+      animation: fadeInScale 0.3s ease-in-out;
+    }
+    @keyframes fadeInScale {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl mx-auto">
+      <!-- Top Bar -->
+      <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold flex items-center gap-2">
+          <i data-feather="settings"></i> Painel de Administração - Newsletter
+        </h1>
+        <div class="flex gap-3">
+          <a href="index.html" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md transition flex items-center gap-1">
+            <i data-feather="home" class="w-4 h-4"></i> Início
+          </a>
+          <a href="database.html" class="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded-md transition flex items-center gap-1">
+            <i data-feather="database" class="w-4 h-4"></i> Propostas
+          </a>
+        </div>
+      </div>
+
+      <!-- Conteúdo -->
+      <div class="p-6 space-y-6">
+        <!-- Editor -->
+        <div>
+          <label for="newsletter-content" class="block text-sm font-medium text-gray-700 mb-2">
+            Conteúdo da Newsletter
+          </label>
+          <textarea id="newsletter-content" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+Bem-vindo ao nosso boletim de inovação semanal! 
+Aqui estão as novidades desta semana: 
+1. Novo projeto de IA sendo testado no departamento de atendimento 
+2. Workshop de design thinking na próxima terça-feira 
+3. Sistema de reconhecimento de ideias implementado - envie suas sugestões! 
+
+Fique à vontade para compartilhar suas ideias conosco!
+          </textarea>
+          <p class="mt-1 text-sm text-gray-500">
+            Esta mensagem será exibida automaticamente quando os usuários abrirem o chat.
+          </p>
+        </div>
+
+        <!-- Pré-visualização -->
+        <div>
+          <h2 class="text-lg font-medium text-gray-900 mb-2">Pré-visualização</h2>
+          <div id="newsletter-preview" class="bg-gray-50 rounded-lg p-4 border border-gray-200 min-h-[150px] whitespace-pre-line text-gray-700">
+            O conteúdo aparecerá aqui...
+          </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end gap-3">
+          <button id="preview-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition">
+            Pré-visualizar
+          </button>
+          <button id="save-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+            Salvar Newsletter
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="fixed inset-0 modal-bg hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full modal-animate">
+      <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
+        <h2 class="text-lg font-semibold">Newsletter Salva</h2>
+        <button id="close-modal" class="hover:text-red-300">
+          <i data-feather="x"></i>
+        </button>
+      </div>
+      <div class="p-6 text-gray-700">
+        <p>A newsletter foi salva com sucesso!</p>
+      </div>
+      <div class="bg-gray-50 p-4 flex justify-end">
+        <button id="close-modal-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    feather.replace();
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedMessage = localStorage.getItem("newsletterMessage");
+      const contentField = document.getElementById("newsletter-content");
+      const previewField = document.getElementById("newsletter-preview");
+
+      if (savedMessage) {
+        contentField.value = savedMessage;
+        previewField.textContent = savedMessage;
+      }
+
+      document.getElementById("preview-btn").addEventListener("click", () => {
+        previewField.textContent = contentField.value;
+      });
+
+      document.getElementById("save-btn").addEventListener("click", () => {
+        localStorage.setItem("newsletterMessage", contentField.value);
+        document.getElementById("modal").classList.remove("hidden");
+      });
+
+      document.getElementById("close-modal").addEventListener("click", closeModal);
+      document.getElementById("close-modal-btn").addEventListener("click", closeModal);
+
+      function closeModal() {
+        document.getElementById("modal").classList.add("hidden");
+      }
+    });
+  </script>
+</body>
+</html>

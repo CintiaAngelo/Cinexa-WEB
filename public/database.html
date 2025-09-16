@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database - Innovation Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
+      min-height: 100vh;
+    }
+    .modal-bg {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+    }
+    .modal-animate {
+      animation: fadeInScale 0.3s ease-in-out;
+    }
+    @keyframes fadeInScale {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold flex items-center gap-2">
+          <i data-feather="database"></i> Banco de Dados - Propostas de Inovação
+        </h1>
+        <div class="flex gap-3">
+          <a href="index.html" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md transition flex items-center gap-1">
+            <i data-feather="home" class="w-4 h-4"></i> Início
+          </a>
+          <a href="admin.html" class="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded-md transition flex items-center gap-1">
+            <i data-feather="settings" class="w-4 h-4"></i> Admin
+          </a>
+        </div>
+      </div>
+      
+      <div class="p-6">
+        <div class="mb-4 flex justify-between items-center">
+          <h2 class="text-lg font-semibold text-gray-800">Propostas Recebidas</h2>
+          <div class="text-sm text-gray-500">Total: <span id="total-ideas">0</span></div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+            <thead class="bg-gray-100 sticky top-0">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Data</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Título</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Departamentos</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200" id="ideas-table">
+              <!-- Propostas serão carregadas aqui -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="mt-4 text-center text-gray-500 hidden" id="no-ideas">
+          Nenhuma proposta cadastrada ainda.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalhes -->
+  <div id="idea-modal" class="fixed inset-0 modal-bg hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full modal-animate">
+      <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
+        <h2 id="modal-title" class="text-lg font-semibold">Detalhes da Proposta</h2>
+        <button id="close-modal" class="hover:text-red-300">
+          <i data-feather="x"></i>
+        </button>
+      </div>
+      <div class="p-6" id="modal-content">
+        <!-- Conteúdo dinâmico -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    feather.replace();
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const ideas = JSON.parse(localStorage.getItem("innovationIdeas") || "[]");
+      const tableBody = document.getElementById("ideas-table");
+      const noIdeasMessage = document.getElementById("no-ideas");
+      const totalIdeas = document.getElementById("total-ideas");
+
+      totalIdeas.textContent = ideas.length;
+
+      if (ideas.length === 0) {
+        noIdeasMessage.classList.remove("hidden");
+      } else {
+        ideas.forEach((idea, index) => {
+          const date = new Date(idea.date);
+          const formattedDate = date.toLocaleDateString("pt-BR") + " " + date.toLocaleTimeString("pt-BR");
+
+          const row = document.createElement("tr");
+          row.className = "hover:bg-gray-50 transition";
+          row.innerHTML = `
+            <td class="px-6 py-3 text-sm text-gray-500">${formattedDate}</td>
+            <td class="px-6 py-3 text-sm font-medium text-gray-900">${idea.title || "Sem título"}</td>
+            <td class="px-6 py-3 text-sm text-gray-500">${idea.departments || "Não especificado"}</td>
+            <td class="px-6 py-3 text-sm">
+              <button class="text-blue-600 hover:text-blue-800 view-idea" data-index="${index}">
+                <i data-feather="eye"></i>
+              </button>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+
+        feather.replace();
+
+        document.querySelectorAll(".view-idea").forEach(button => {
+          button.addEventListener("click", e => {
+            const index = e.currentTarget.dataset.index;
+            showIdeaDetails(ideas[index]);
+          });
+        });
+      }
+
+      document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("idea-modal").classList.add("hidden");
+      });
+    });
+
+    function showIdeaDetails(idea) {
+      const date = new Date(idea.date);
+      const formattedDate = date.toLocaleDateString("pt-BR") + " " + date.toLocaleTimeString("pt-BR");
+
+      document.getElementById("modal-title").textContent = idea.title || "Detalhes da Proposta";
+      document.getElementById("modal-content").innerHTML = `
+        <div class="space-y-4 text-gray-800">
+          <div><strong>Data de Envio:</strong> ${formattedDate}</div>
+          <div><strong>Título:</strong> ${idea.title || "Não especificado"}</div>
+          <div><strong>Descrição:</strong> <p class="mt-1 whitespace-pre-line">${idea.description || "Não especificado"}</p></div>
+          <div><strong>Problema Resolvido:</strong> ${idea.problem || "Não especificado"}</div>
+          <div><strong>Departamentos Impactados:</strong> ${idea.departments || "Não especificado"}</div>
+        </div>
+      `;
+
+      document.getElementById("idea-modal").classList.remove("hidden");
+      feather.replace();
+    }
+  </script>
+</body>
+</html>

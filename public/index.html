@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Innovation Chatbot</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body { background: linear-gradient(135deg,#e0f2fe,#f0f9ff); }
+    .chat-box { max-width: 900px; margin: 24px auto; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(2,6,23,0.12); }
+    .messages { height: 60vh; overflow-y: auto; padding: 16px; background: linear-gradient(180deg,#ffffff,#f8fafc); }
+    .msg-user { text-align: right; }
+    .msg-bot { text-align: left; }
+    .badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; background: rgba(59,130,246,0.12); color:#0369a1; display:inline-block;}
+  </style>
+</head>
+<body>
+  <div class="chat-box bg-white">
+    <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <i data-feather="message-square"></i>
+        <div>
+          <div class="font-bold">Innovation Chatbot</div>
+          <div class="text-sm">Propostas - Eurofarma</div>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <a href="admin.html" class="text-white hover:opacity-80">Admin</a>
+        <a href="database.html" class="text-white hover:opacity-80">Propostas</a>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="p-4 bg-gray-50 border-t flex gap-2">
+      <input id="input" class="flex-1 border rounded-lg px-4 py-2" type="text" placeholder='Digite... (ou "iniciar" para começar)' />
+      <button id="send" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    feather.replace();
+    const socket = io();
+
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+
+    function addMessage(text, from='bot') {
+      const wrap = document.createElement('div');
+      wrap.className = from === 'user' ? 'msg-user mb-3' : 'msg-bot mb-3';
+      wrap.innerHTML = `<div class="${from === 'user' ? 'inline-block bg-gray-200 px-4 py-2 rounded-lg' : 'inline-block bg-blue-100 px-4 py-2 rounded-lg'}">${text}</div>`;
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // start flow on load
+    socket.emit('start');
+
+    socket.on('bot_message', (text) => {
+      addMessage(text, 'bot');
+    });
+
+    sendBtn.addEventListener('click', () => {
+      const val = inputEl.value.trim();
+      if (!val) return;
+      addMessage(val, 'user');
+      socket.emit('user_message', val);
+      inputEl.value = '';
+    });
+
+    inputEl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendBtn.click();
+    });
+
+    // Optional: listen for new proposals to notify admin
+    socket.on('new_proposal', (proposal) => {
+      console.log('New proposal saved', proposal);
+    });
+  </script>
+</body>
+</html>
