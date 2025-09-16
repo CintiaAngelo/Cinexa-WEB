@@ -1,15 +1,15 @@
 const express = require('express');
-const cors = require('cors');
+const bodyParser = require('body-parser');
 const path = require('path');
-
-const proposalRoutes = require('./routes/proposalRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 const app = express();
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/api/proposals', proposalRoutes);
+// API
+app.use('/api/chat', chatRoutes);
+app.use('/api', publicRoutes);
 
 module.exports = app;

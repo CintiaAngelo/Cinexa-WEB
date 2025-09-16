@@ -4,4 +4,9 @@ const controller = require('../controllers/chatController');
 
 router.post('/message', controller.handleMessage);
 
+module.exports = {
+  handleMessage: async (req, res) => {
+    // lógica do chat
+  }
+};
 module.exports = router;

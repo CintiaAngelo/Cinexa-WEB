@@ -1,9 +1,9 @@
 const http = require('http');
-const app = require('./app');
-const { connect } = require('./config/db');
+const app = require('./src/app');
+const { connect } = require('./src/config/db');
 const { Server } = require('socket.io');
-const decisionTree = require('./services/decisionTree');
-const proposalService = require('./services/proposalService');
+const decisionTree = require('./src/services/decisionTree');
+const proposalService = require('./src/services/proposalService');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
