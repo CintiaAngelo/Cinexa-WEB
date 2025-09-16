@@ -1,0 +1,10 @@
+const Idea = require('../models/Idea');
+
+async function createIdea(req, res) {
+    const { title, description, author } = req.body;
+    const idea = new Idea({ title, description, author });
+    await idea.save();
+    res.json({ message: 'Ideia cadastrada com sucesso!' });
+}
+
+module.exports = { createIdea };

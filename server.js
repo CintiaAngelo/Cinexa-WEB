@@ -1,36 +1,63 @@
+// server.js
+const express = require('express');
 const http = require('http');
-const app = require('./src/app');
-const { connect } = require('./src/config/db');
 const { Server } = require('socket.io');
-const decisionTree = require('./src/services/decisionTree');
-const proposalService = require('./src/services/proposalService');
+const path = require('path');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
-const PORT = process.env.PORT || 3000;
+// Import services/controllers
+const decisionTree = require('./src/services/decisionTree');
+const proposalService = require('./src/services/proposalService');
+const { getNewsletter } = require('./src/controllers/newsletterController');
+const { createIdea } = require('./src/controllers/ideaController');
 
-async function start() {
-  await connect();
+// --- Configurações do app ---
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-  const server = http.createServer(app);
-  const io = new Server(server, {
-    cors: { origin: '*' }
-  });
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-  io.on('connection', (socket) => {
-    console.log('Cliente conectado:', socket.id);
+// --- Conexão MongoDB ---
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/innovation')
+  .then(() => console.log('Conectado ao MongoDB'))
+  .catch(err => console.error('Erro ao conectar no MongoDB:', err));
 
-    socket.on('start', () => {
-      decisionTree.startSession(socket.id);
-      const first = decisionTree.process(socket.id, 'iniciar');
-      socket.emit('bot_message', first.reply);
-    });
+// --- Rotas REST ---
+// Newsletter
+app.get('/api/newsletter', async (req, res) => {
+  try {
+    const newsletter = await getNewsletter(req, res);
+    // getNewsletter já retorna JSON
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar newsletter' });
+  }
+});
 
-    socket.on('user_message', async (msg) => {
-      const result = decisionTree.process(socket.id, msg);
-      socket.emit('bot_message', result.reply);
+// Criar ideia
+app.post('/api/idea', async (req, res) => {
+  try {
+    await createIdea(req, res);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar ideia' });
+  }
+});
 
+// --- Socket.IO ---
+io.on('connection', (socket) => {
+  console.log('Cliente conectado:', socket.id);
+
+  // Sempre que o usuário envia uma mensagem
+  socket.on('user_message', (msg) => {
+    const result = decisionTree.process(socket.id, msg);
+    socket.emit('bot_message', result.reply);
+
+    // Se a sessão estiver completa e precisa salvar
+    if (result.done) {
       const session = decisionTree.getSession(socket.id);
-      if (session?.completed) {
+      if (session && session.completed) {
         const payload = {
           title: session.data.title,
           description: session.data.description,
@@ -45,27 +72,29 @@ async function start() {
           participants: session.data.participants || []
         };
 
-        try {
-          const saved = await proposalService.createProposal(payload);
-          socket.emit('bot_message', 'Proposta salva com sucesso!');
-          io.emit('new_proposal', saved);
-          decisionTree.resetSession(socket.id);
-        } catch (err) {
-          console.error(err);
-          socket.emit('bot_message', 'Erro ao salvar proposta. Tente novamente mais tarde.');
-        }
+        proposalService.createProposal(payload)
+          .then(saved => {
+            socket.emit('bot_message', 'Sua proposta foi salva com sucesso!');
+            io.emit('new_proposal', saved); // Notifica todos os clientes conectados
+            decisionTree.resetSession(socket.id); // Reseta a sessão após salvar
+          })
+          .catch(err => {
+            console.error(err);
+            socket.emit('bot_message', 'Erro ao salvar proposta.');
+          });
       }
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Cliente desconectado:', socket.id);
-    });
+    }
   });
 
-  server.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
-}
+  // Opcional: quando o cliente desconecta
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado:', socket.id);
+    decisionTree.resetSession(socket.id);
+  });
+});
 
-start().catch((err) => {
-  console.error('Erro ao iniciar servidor:', err);
-  process.exit(1);
+// --- Servidor ---
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
