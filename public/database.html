@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,21 +7,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/feather-icons"></script>
   <style>
-    body {
-      background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
-      min-height: 100vh;
-    }
-    .modal-bg {
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(5px);
-    }
-    .modal-animate {
-      animation: fadeInScale 0.3s ease-in-out;
-    }
-    @keyframes fadeInScale {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
+    body { background: linear-gradient(135deg, #e0f2fe, #f0f9ff); min-height: 100vh; }
+    .modal-bg { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px); }
+    .modal-animate { animation: fadeInScale 0.3s ease-in-out; }
+    @keyframes fadeInScale { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   </style>
 </head>
 <body>
@@ -79,26 +68,36 @@
           <i data-feather="x"></i>
         </button>
       </div>
-      <div class="p-6" id="modal-content">
-        <!-- Conteúdo dinâmico -->
-      </div>
+      <div class="p-6" id="modal-content"></div>
     </div>
   </div>
 
   <script>
     feather.replace();
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const ideas = JSON.parse(localStorage.getItem("innovationIdeas") || "[]");
+    async function loadProposals() {
       const tableBody = document.getElementById("ideas-table");
       const noIdeasMessage = document.getElementById("no-ideas");
       const totalIdeas = document.getElementById("total-ideas");
+
+      let ideas = [];
+
+      try {
+        // Tenta buscar do MongoDB
+        const res = await fetch('/api/proposals');
+        ideas = await res.json();
+      } catch (err) {
+        console.error('Erro ao buscar do MongoDB, usando localStorage', err);
+        ideas = JSON.parse(localStorage.getItem("innovationIdeas") || "[]");
+      }
 
       totalIdeas.textContent = ideas.length;
 
       if (ideas.length === 0) {
         noIdeasMessage.classList.remove("hidden");
       } else {
+        noIdeasMessage.classList.add("hidden");
+
         ideas.forEach((idea, index) => {
           const date = new Date(idea.date);
           const formattedDate = date.toLocaleDateString("pt-BR") + " " + date.toLocaleTimeString("pt-BR");
@@ -118,8 +117,7 @@
           tableBody.appendChild(row);
         });
 
-        feather.replace();
-
+        // Abre modal
         document.querySelectorAll(".view-idea").forEach(button => {
           button.addEventListener("click", e => {
             const index = e.currentTarget.dataset.index;
@@ -127,11 +125,7 @@
           });
         });
       }
-
-      document.getElementById("close-modal").addEventListener("click", () => {
-        document.getElementById("idea-modal").classList.add("hidden");
-      });
-    });
+    }
 
     function showIdeaDetails(idea) {
       const date = new Date(idea.date);
@@ -141,16 +135,23 @@
       document.getElementById("modal-content").innerHTML = `
         <div class="space-y-4 text-gray-800">
           <div><strong>Data de Envio:</strong> ${formattedDate}</div>
+          <div><strong>Usuário:</strong> ${idea.user?.name || "Não informado"} (${idea.user?.email || ""})</div>
+          <div><strong>Departamento:</strong> ${idea.user?.department || "Não informado"}</div>
           <div><strong>Título:</strong> ${idea.title || "Não especificado"}</div>
           <div><strong>Descrição:</strong> <p class="mt-1 whitespace-pre-line">${idea.description || "Não especificado"}</p></div>
           <div><strong>Problema Resolvido:</strong> ${idea.problem || "Não especificado"}</div>
           <div><strong>Departamentos Impactados:</strong> ${idea.departments || "Não especificado"}</div>
         </div>
       `;
-
       document.getElementById("idea-modal").classList.remove("hidden");
       feather.replace();
     }
+
+    document.getElementById("close-modal").addEventListener("click", () => {
+      document.getElementById("idea-modal").classList.add("hidden");
+    });
+
+    window.addEventListener("DOMContentLoaded", loadProposals);
   </script>
 </body>
 </html>

@@ -1,18 +1,17 @@
+// models/Proposal.js
 const mongoose = require('mongoose');
 
-const proposalSchema = new mongoose.Schema({
+const ProposalSchema = new mongoose.Schema({
+  user: {
+    name: String,
+    email: String,
+    department: String
+  },
   title: String,
   description: String,
   problem: String,
   departments: String,
-  submitter: {
-    name: String,
-    matricula: String,
-    cpf: String,
-    phone: String
-  },
-  participants: [String],
-  createdAt: { type: Date, default: Date.now }
+  date: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Proposal', proposalSchema);
+module.exports = mongoose.model('Proposal', ProposalSchema);

@@ -1,10 +1,21 @@
+// src/controllers/ideaController.js
 const Idea = require('../models/Idea');
 
+// Cria nova ideia
 async function createIdea(req, res) {
-    const { title, description, author } = req.body;
-    const idea = new Idea({ title, description, author });
+  try {
+    const idea = new Idea(req.body);
     await idea.save();
-    res.json({ message: 'Ideia cadastrada com sucesso!' });
+    res.json(idea);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao salvar ideia' });
+  }
 }
 
-module.exports = { createIdea };
+// Retorna todas as ideias
+async function getAllIdeas() {
+  return Idea.find().sort({ date: -1 });
+}
+
+module.exports = { createIdea, getAllIdeas };

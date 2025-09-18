@@ -9,8 +9,12 @@ require('dotenv').config();
 // Import services/controllers
 const decisionTree = require('./src/services/decisionTree');
 const proposalService = require('./src/services/proposalService');
-const { getNewsletter } = require('./src/controllers/newsletterController');
-const { createIdea } = require('./src/controllers/ideaController');
+const { getNewsletter } = require('./controllers/newsletterController');
+const { createIdea } = require('./controllers/ideaController');
+const proposalRoutes = require('./routes/proposals');
+app.use('/api/proposals', proposalRoutes);
+
+
 
 // --- Configurações do app ---
 const app = express();
