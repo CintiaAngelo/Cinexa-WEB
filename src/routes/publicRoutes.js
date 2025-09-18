@@ -1,29 +1,38 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const { getNewsletter, setNewsletter } = require('../controllers/newsletterController');
 const proposalService = require('../services/proposalService');
 
-router.get('/users', async (req, res) => {
+// --- Newsletter ---
+// GET última newsletter
+router.get('/newsletter', async (req, res) => {
   try {
-    const q = req.query.q || '';
-    const filter = q ? { $or: [{ matricula: { $regex: q } }, { name: { $regex: q, $options: 'i' } }] } : {};
-    const users = await User.find(filter).limit(100).lean();
-    res.json(users);
+    await getNewsletter(req, res);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao listar usuários' });
+    res.status(500).json({ error: 'Erro ao buscar newsletter' });
   }
 });
 
+// POST atualizar newsletter
+router.post('/newsletter', async (req, res) => {
+  try {
+    await setNewsletter(req, res);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar newsletter' });
+  }
+});
+
+// --- Propostas ---
+// GET todas as propostas (limite opcional ?limit=50)
 router.get('/proposals', async (req, res) => {
   try {
-    const list = await proposalService.listProposals(200);
-    res.json(list);
+    const limit = parseInt(req.query.limit) || 50;
+    const proposals = await proposalService.listProposals(limit);
+    res.json(proposals);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erro ao listar propostas' });
+    res.status(500).json({ error: 'Erro ao buscar propostas' });
   }
 });
-
 
 module.exports = router;

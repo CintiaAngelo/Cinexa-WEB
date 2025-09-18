@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Innovation Chatbot</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/feather-icons"></script>
-  <link rel="stylesheet" href="css/styles.css" />
   <style>
     body { background: linear-gradient(135deg,#e0f2fe,#f0f9ff); }
     .chat-box { max-width: 900px; margin: 24px auto; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(2,6,23,0.12); }
-    .messages { height: 50vh; overflow-y: auto; padding: 16px; background: linear-gradient(180deg,#ffffff,#f8fafc); }
+    .messages { height: 60vh; overflow-y: auto; padding: 16px; background: linear-gradient(180deg,#ffffff,#f8fafc); }
     .msg-user { text-align: right; }
     .msg-bot { text-align: left; }
     .badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; background: rgba(59,130,246,0.12); color:#0369a1; display:inline-block;}
@@ -20,7 +19,6 @@
 </head>
 <body>
   <div class="chat-box bg-white">
-    <!-- Cabeçalho -->
     <div class="bg-blue-700 text-white p-4 flex justify-between items-center">
       <div class="flex items-center gap-3">
         <i data-feather="message-square"></i>
@@ -35,7 +33,7 @@
       </div>
     </div>
 
-    <!-- Mensagem inicial da newsletter -->
+    <!-- Newsletter -->
     <div id="newsletter">Carregando últimas inovações...</div>
 
     <!-- Chat -->
@@ -57,7 +55,6 @@
     const sendBtn = document.getElementById('send');
     const newsletterEl = document.getElementById('newsletter');
 
-    // Adiciona mensagem no chat
     function addMessage(text, from='bot') {
       const wrap = document.createElement('div');
       wrap.className = from==='user' ? 'msg-user mb-3' : 'msg-bot mb-3';
@@ -66,151 +63,40 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    // Carregar newsletter inicial
     async function loadNewsletter() {
       try {
-        let content = localStorage.getItem('newsletterMessage');
-        if (!content) {
-          const res = await fetch('/api/newsletter');
-          const data = await res.json();
-          content = data.content || "Bem-vindo ao chat de inovação!";
-        }
+        const res = await fetch('/api/newsletter');
+        const data = await res.json();
+        const content = data.content || "Bem-vindo ao chat de inovação!";
         newsletterEl.innerText = content;
         addMessage(content, 'bot');
         addMessage('Digite "iniciar" para começar a cadastrar sua ideia.', 'bot');
-      } catch (err) {
+      } catch(err) {
         console.error(err);
         newsletterEl.innerText = "Erro ao carregar as inovações.";
         addMessage("Bem-vindo ao chat de inovação!", 'bot');
-        addMessage('Digite "iniciar" para cadastrar sua ideia.', 'bot');
       }
     }
 
-    // Variáveis de fluxo
-    let userInfo = null;
-    let currentProposal = null;
-    let step = 0; // 0-2: usuário | 3-7: proposta | 8: confirmação
-    let stepField = '';
-
-    // Fluxo de entrada do usuário
-    function handleUserInput(val) {
-      const lower = val.toLowerCase();
-
-      // Coleta de informações do usuário
-      if (!userInfo) {
-        switch(step){
-          case 0:
-            userInfo = { name: val }; addMessage('Qual o seu e-mail?', 'bot'); step++; return;
-          case 1:
-            userInfo.email = val; addMessage('Qual o seu departamento?', 'bot'); step++; return;
-          case 2:
-            userInfo.department = val; addMessage('Perfeito! Digite "iniciar" para cadastrar sua proposta.', 'bot'); return;
-        }
-      }
-
-      // Inicia proposta
-      if (lower==='iniciar' && step>=2) {
-        currentProposal = { title:'', description:'', problem:'', departments:'' };
-        addMessage('Vamos começar sua proposta! Qual o título da sua ideia?', 'bot');
-        step = 3; return;
-      }
-
-      if (!currentProposal) {
-        addMessage('Digite "iniciar" para começar a cadastrar sua ideia.', 'bot'); return;
-      }
-
-      // Coleta de campos da proposta
-      if (!currentProposal.title) { currentProposal.title = val; addMessage('Ótimo! Agora descreva sua ideia.', 'bot'); return; }
-      if (!currentProposal.description) { currentProposal.description = val; addMessage('Qual problema sua ideia resolve?', 'bot'); return; }
-      if (!currentProposal.problem) { currentProposal.problem = val; addMessage('Quais departamentos são impactados?', 'bot'); return; }
-      if (!currentProposal.departments) {
-        currentProposal.departments = val;
-        showProposalSummary(); step = 8; return;
-      }
-
-      // Edição ou confirmação
-      if (step===8) {
-        if (lower==='editar') {
-          addMessage('Qual campo deseja alterar? (nome, email, departamento, título, descrição, problema, departamentos)', 'bot'); step=9; return;
-        }
-        if (lower==='confirmar') {
-          const proposalToSave = { user: userInfo, ...currentProposal };
-          saveProposal(proposalToSave);
-          addMessage('Sua proposta foi salva com sucesso!', 'bot');
-          currentProposal=null; step=3; return;
-        }
-        addMessage('Digite "confirmar" para salvar ou "editar" para alterar algum campo.', 'bot'); return;
-      }
-
-      // Escolha de campo para editar
-      if (step===9) {
-        stepField = lower;
-        addMessage(`Digite o novo valor para ${stepField}:`, 'bot');
-        step=10; return;
-      }
-
-      if (step===10) {
-        const newValue = val;
-        switch(stepField){
-          case 'nome': userInfo.name=newValue; break;
-          case 'email': userInfo.email=newValue; break;
-          case 'departamento': userInfo.department=newValue; break;
-          case 'título': currentProposal.title=newValue; break;
-          case 'descrição': currentProposal.description=newValue; break;
-          case 'problema': currentProposal.problem=newValue; break;
-          case 'departamentos': currentProposal.departments=newValue; break;
-          default: addMessage('Campo inválido', 'bot'); break;
-        }
-        showProposalSummary(); step=8; return;
-      }
-    }
-
-    // Mostra resumo da proposta
-    function showProposalSummary(){
-      addMessage(`Resumo da proposta:
-Nome: ${userInfo.name}
-E-mail: ${userInfo.email}
-Departamento: ${userInfo.department}
-Título: ${currentProposal.title}
-Descrição: ${currentProposal.description}
-Problema: ${currentProposal.problem}
-Departamentos Impactados: ${currentProposal.departments}
-
-Digite "confirmar" para salvar ou "editar" para alterar algum campo.`, 'bot');
-    }
-
-    // Salvar no localStorage e MongoDB
-    function saveProposal(proposal){
-      // LocalStorage
-      const ideas = JSON.parse(localStorage.getItem('innovationIdeas') || '[]');
-      ideas.push(proposal);
-      localStorage.setItem('innovationIdeas', JSON.stringify(ideas));
-      // MongoDB
-      fetch('/api/proposals', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(proposal)
-      })
-      .then(res=>res.json())
-      .then(data=>console.log('Proposta salva no MongoDB', data))
-      .catch(err=>console.error('Erro ao salvar no MongoDB', err));
-      socket.emit('new_proposal', proposal); // opcional
-    }
-
-    // Enviar mensagem
-    function sendMessage(){
+    // Envia mensagem do usuário para o servidor
+    function sendMessage() {
       const val = inputEl.value.trim();
       if (!val) return;
       addMessage(val, 'user');
-      handleUserInput(val);
-      inputEl.value='';
+      socket.emit('user_message', val);
+      inputEl.value = '';
     }
 
     sendBtn.addEventListener('click', sendMessage);
-    inputEl.addEventListener('keypress',(e)=>{if(e.key==='Enter') sendMessage();});
+    inputEl.addEventListener('keypress', e => { if (e.key==='Enter') sendMessage(); });
 
-    socket.on('bot_message', text=>addMessage(text,'bot'));
-    socket.on('new_proposal', proposal=>console.log('Nova proposta recebida:', proposal));
+    // Recebe mensagem do bot do servidor
+    socket.on('bot_message', text => addMessage(text, 'bot'));
+
+    // Atualiza newsletter localmente quando receber nova proposta (opcional)
+    socket.on('new_proposal', proposal => {
+      console.log('Nova proposta recebida:', proposal);
+    });
 
     window.addEventListener('DOMContentLoaded', loadNewsletter);
   </script>

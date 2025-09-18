@@ -1,43 +1,58 @@
+// src/controllers/chatController.js
 const decisionTree = require('../services/decisionTree');
 const proposalService = require('../services/proposalService');
 
-/**
- * handleMessage: endpoint REST (optional)
- * Expected body: { sessionId, message }
- */
-async function handleMessage(req, res) {
+async function processMessage(req, res) {
   const { sessionId, message } = req.body;
-  if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
-  const r = decisionTree.process(sessionId, message);
-  // if user completed flow and state says completed, save
-  const session = decisionTree.getSession(sessionId);
-  if (session && session.completed) {
-    // build payload for saving
-    const payload = {
-      title: session.data.title,
-      description: session.data.description,
-      problem: session.data.problem,
-      departments: session.data.departments,
-      submitter: {
-        name: session.data.name,
-        matricula: session.data.matricula,
-        cpf: session.data.cpf,
-        phone: session.data.phone
-      },
-      participants: session.data.participants || []
-    };
-    try {
-      const saved = await proposalService.createProposal(payload);
-      // reset session after save
-      decisionTree.resetSession(sessionId);
-      return res.json({ reply: 'Proposta salva com sucesso!', saved, done: true });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Erro ao salvar proposta' });
-    }
+  if (!sessionId || !message) {
+    return res.status(400).json({ error: 'sessionId e message são obrigatórios' });
   }
-  return res.json({ reply: r.reply, done: r.done });
+
+  try {
+    const result = decisionTree.process(sessionId, message);
+
+    // Se o fluxo terminou → salva a proposta no banco
+    if (result.done) {
+      const session = decisionTree.getSession(sessionId);
+
+      if (session && session.completed) {
+        const payload = {
+          title: session.data.title,
+          description: session.data.description,
+          problem: session.data.problem,
+          departments: session.data.departments,
+          submitter: {
+            name: session.data.name,
+            matricula: session.data.matricula,
+            cpf: session.data.cpf,
+            phone: session.data.phone
+          },
+          participants: session.data.participants || []
+        };
+
+        try {
+          const saved = await proposalService.createProposal(payload);
+          decisionTree.resetSession(sessionId);
+
+          return res.json({
+            reply: "Sua proposta foi salva com sucesso!",
+            saved
+          });
+        } catch (err) {
+          console.error("Erro ao salvar proposta:", err);
+          return res.json({ reply: "⚠️ Erro ao salvar proposta. Tente novamente." });
+        }
+      }
+    }
+
+    // Resposta normal do bot
+    return res.json({ reply: result.reply });
+
+  } catch (err) {
+    console.error("Erro no processMessage:", err);
+    return res.status(500).json({ error: "Erro interno do servidor" });
+  }
 }
 
-module.exports = { handleMessage };
+module.exports = { processMessage };
